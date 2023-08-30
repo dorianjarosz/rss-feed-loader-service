@@ -5,10 +5,11 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using Microsoft.Data.SqlClient;
 
 namespace RSSFeedLoaderService
 {
-    // sc.exe create "RSSFeedLoaderService" binpath="C:\Users\a694355\Documents\RSSFeedLoaderService\RSSFeedLoaderService\RSSFeedLoaderService.exe --contentRoot C:\Users\a694355\Documents\RSSFeedLoaderService\RSSFeedLoaderService"
+    // sc create "RSSFeedLoaderService" binpath="C:\Users\a694355\Documents\RSSFeedLoaderService\RSSFeedLoaderService\RSSFeedLoaderService.exe --contentRoot C:\Users\a694355\Documents\RSSFeedLoaderService\RSSFeedLoaderService"
     // run this command in cmd as admin
 
     public class Worker : BackgroundService
@@ -184,10 +185,10 @@ namespace RSSFeedLoaderService
 
         private static int ExecuteNonQuery(string SQLQuery, string connection)
         {
-            System.Data.SqlClient.SqlConnection sqlc = new System.Data.SqlClient.SqlConnection(connection);
+            SqlConnection sqlc = new SqlConnection(connection);
             sqlc.Open();
 
-            System.Data.SqlClient.SqlCommand sqlcom = new System.Data.SqlClient.SqlCommand(SQLQuery, sqlc);
+            SqlCommand sqlcom = new SqlCommand(SQLQuery, sqlc);
             int result = sqlcom.ExecuteNonQuery();
 
             sqlc.Close();
