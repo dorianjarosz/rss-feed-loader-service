@@ -1,6 +1,4 @@
 using System.Data;
-using System.Data.SqlClient;
-using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -16,25 +14,12 @@ namespace RSSFeedLoaderService
     {
         private readonly ILogger<Worker> _logger;
 
-        private InstanceData[] instanceDataEntries = new [] {
-            new InstanceData{
-                InstanceRootUrl="https://s89-onesource.fsc.atos-services.net",
-                DBConnectionString= "Server=localhost;Database=s89;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
-            },
-           new InstanceData{
-                InstanceRootUrl="https://s81-onesource.fsc.atos-services.net",
-                DBConnectionString= "Server=localhost;Database=s81;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
-            },
-           new InstanceData{
-                InstanceRootUrl="https://s84-onesource.fsc.atos-services.net",
-                DBConnectionString= "Server=localhost;Database=s84;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
-            }
-            
-        };
+        private readonly IConfiguration _configuration;
 
-        public Worker(ILogger<Worker> logger)
+        public Worker(ILogger<Worker> logger, IConfiguration configuration)
         {
             _logger = logger;
+            _configuration = configuration;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -52,9 +37,11 @@ namespace RSSFeedLoaderService
         {
             try
             {
-                foreach (var instanceData in instanceDataEntries)
+                var instanceDataSections= _configuration.GetSection("InstanceData").GetChildren();
+
+                foreach (var instanceDataSection in instanceDataSections)
                 {
-                    SaveRSSinDB(instanceData);
+                    SaveRSSinDB(instanceDataSection);
 
                 }
                 _logger.LogInformation("Load RSSFeeds successful");
@@ -65,14 +52,14 @@ namespace RSSFeedLoaderService
             }
         }
 
-        private void SaveRSSinDB(InstanceData instanceData)
+        private void SaveRSSinDB(IConfigurationSection instanceDataSection)
         {
-            DataSet dsRSS = GetDataset("select distinct rssURL, max(id) ID from sys_config_RSSFeed group by rssURL", instanceData.DBConnectionString);
+            DataSet dsRSS = GetDataset("select distinct rssURL, max(id) ID from sys_config_RSSFeed group by rssURL", instanceDataSection["DBConnectionString"]);
             if (dsRSS.Tables.Count > 0 && dsRSS.Tables[0].Rows.Count > 0)
             {
                 foreach (DataRow rw in dsRSS.Tables[0].Rows)
                 {
-                    SaveInBDByRSS(rw["ID"]?.ToString(), rw["rssURL"]?.ToString(), instanceData.DBConnectionString, instanceData.InstanceRootUrl);
+                    SaveInBDByRSS(rw["ID"]?.ToString(), rw["rssURL"]?.ToString(), instanceDataSection["DBConnectionString"], instanceDataSection["InstanceRootUrl"]);
                 }
             }
         }
@@ -109,7 +96,6 @@ namespace RSSFeedLoaderService
                 listAux = persons.ToList();
                 if (listAux.Count > 0)
                 {
-                    int i = 1;
                     foreach (XElement element in listAux)
                     {
                         try
@@ -138,7 +124,7 @@ namespace RSSFeedLoaderService
                             DataSet dsRSS = GetDataset("select * from RSSFeeds where title = '" + title + "'", connString);
                             if (dsRSS.Tables.Count == 0 || dsRSS.Tables[0].Rows.Count == 0)
                             {
-                                sql += "INSERT INTO RSSFeeds ([content],[imgUrl],[url],[title],[subtitle],[pubDate],[idRSS]) ";
+                                sql += "INSERT INTO RSSFeeds ([content],[imgURl],[url],[title],[subtitle],[pubDate],[idRSS]) ";
                                 sql += "Values ('" + content + "', '" + imgUrl + "', '" + url + "', '" + title + "' ,'" + subtitle + "', '" + DateTime.Parse(pubDate) + "'," + id + "); ";
                                 ExecuteNonQuery(sql, connString);
                             }
