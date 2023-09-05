@@ -54,7 +54,7 @@ namespace RSSFeedLoaderService
 
         private void SaveRSSinDB(IConfigurationSection instanceDataSection)
         {
-            DataSet dsRSS = GetDataset("select distinct rssURL, max(id) ID from sys_config_RSSFeed group by rssURL", instanceDataSection["DBConnectionString"]);
+            DataSet dsRSS = GetDataset($"select distinct {instanceDataSection["RSSURLColumnName"]}, max(id) ID from {instanceDataSection["ConfigTableName"]} group by rssURL", instanceDataSection["DBConnectionString"]);
             if (dsRSS.Tables.Count > 0 && dsRSS.Tables[0].Rows.Count > 0)
             {
                 foreach (DataRow rw in dsRSS.Tables[0].Rows)
